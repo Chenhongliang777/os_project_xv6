@@ -303,6 +303,9 @@ fork(void)
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
+  // Copy the trace mask from parent to child
+  np->tracemask = p->tracemask;  
+
   pid = np->pid;
 
   release(&np->lock);
@@ -653,4 +656,16 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int getnproc(void){
+    struct proc *p;
+    int count = 0;
+    for (p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
+        if (p->state != UNUSED)
+            count++;
+        release(&p->lock);
+    }
+    return count;
 }
