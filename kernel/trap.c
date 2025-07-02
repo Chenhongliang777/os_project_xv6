@@ -66,7 +66,7 @@ usertrap(void)
 
     syscall();
   } else if((which_dev = devintr()) != 0){
-    // ok
+      
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
@@ -75,10 +75,33 @@ usertrap(void)
 
   if(p->killed)
     exit(-1);
-
+  
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    struct proc *p = myproc();
+    // 确保当前有用户进程运行
+    if(p) {
+      // 更新警报计数器
+      if(p->alarminterval > 0) {
+        p->alarmticks++;
+        
+        // 检查是否触发警报
+        if(p->alarmticks >= p->alarminterval && p->sigreturned) {
+          // 保存当前执行上下文
+          p->alarmtrapframe = *p->trapframe;
+          
+          // 跳转到处理函数
+          p->trapframe->epc = (uint64)p->alarmhandler;
+          p->alarmticks = 0;      // 重置计数器
+          p->sigreturned = 0;     // 标记处理中
+        }
+      }
+    }
     yield();
+  }
+
+  if(p->killed)
+    exit(-1);
 
   usertrapret();
 }

@@ -57,6 +57,7 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
+  backtrace();//add
 
   if(argint(0, &n) < 0)
     return -1;
@@ -70,6 +71,38 @@ sys_sleep(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
+  return 0;
+}
+
+// 实现sigalarm系统调用
+uint64
+sys_sigalarm(void)
+{
+  int ticks;
+  uint64 handler;
+  struct proc *p = myproc();
+  
+  // 获取参数
+  if(argint(0, &ticks) < 0 || argaddr(1, &handler) < 0)
+    return -1;
+  
+  // 设置警报参数
+  p->alarminterval = ticks;
+  p->alarmhandler = (void(*)())handler;
+  p->alarmticks = 0;       // 重置计数器
+  p->sigreturned = 1;      // 允许触发新警报
+  return 0;
+}
+
+// 实现sigreturn系统调用
+uint64
+sys_sigreturn(void)
+{
+  struct proc *p = myproc();
+  
+  // 恢复原始执行上下文
+  *p->trapframe = p->alarmtrapframe;
+  p->sigreturned = 1;  // 标记处理完成
   return 0;
 }
 

@@ -1,3 +1,11 @@
+static inline uint64
+r_fp(){
+    uint64 x;
+    // 使用 RISC-V 汇编指令 mv 将 s0 寄存器中的值移动到变量 x 中
+    asm volatile("mv %0, s0" : "=r" (x) );
+    return x;
+}
+
 // which hart (core) is this?
 static inline uint64
 r_mhartid()

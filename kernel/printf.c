@@ -17,6 +17,19 @@
 
 volatile int panicked = 0;
 
+void backtrace(void)
+{
+    uint64 fp_address = r_fp();
+    while(fp_address != PGROUNDDOWN(fp_address)) {
+        // 打印ra
+        printf("%p\n", *(uint64*)(fp_address-8));
+        // 到下一个帧指针
+        fp_address = *(uint64*)(fp_address - 16);
+    }
+}
+
+
+
 // lock to avoid interleaving concurrent printf's.
 static struct {
   struct spinlock lock;
