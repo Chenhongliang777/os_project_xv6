@@ -1,0 +1,10 @@
+Question1：Why are there missing keys with 2 threads, but not with 1 thread? Identify a sequence of events with 2 threads that can lead to a key being missing. 
+Answer1：在单线程环境下，哈希表操作是顺序执行的。但在多线程环境下，当两个线程同时操作同一个哈希桶时，链表头指针的更新会出现竞争条件，导致键值丢失
+具体事件序列（以两个线程操作为例）
+    1、线程A 调用 put(key1) 计算桶索引 i = key1 % NBUCKET
+    2、线程B 同时调用 put(key2) 计算桶索引 i = key2 % NBUCKET (假设与key1相同桶)
+    3、线程A 执行 insert()：创建新节点e1，设置 e1->next = table[i] (当前为NULL)
+    4、线程B 同时执行 insert()：创建新节点e2，设置 e2->next = table[i] (仍为NULL，因为线程A更新未完成)
+    5、线程A 执行 *p = e1 (table[i] = e1)
+    6、线程B 执行 *p = e2 (覆盖table[i] = e2)
+    7、结果：e1节点丢失，key1从哈希表中消失

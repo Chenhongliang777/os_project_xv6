@@ -20,17 +20,37 @@ barrier_init(void)
   assert(pthread_mutex_init(&bstate.barrier_mutex, NULL) == 0);
   assert(pthread_cond_init(&bstate.barrier_cond, NULL) == 0);
   bstate.nthread = 0;
+  bstate.round = 0;  // 确保round初始化为0
 }
 
 static void 
 barrier()
 {
   // YOUR CODE HERE
-  //
-  // Block until all threads have called barrier() and
-  // then increment bstate.round.
-  //
+   // 获取互斥锁保护共享状态
+  pthread_mutex_lock(&bstate.barrier_mutex);
   
+  // 增加到达屏障的线程计数
+  bstate.nthread++;
+  
+  // 如果尚未达到所有线程
+  if (bstate.nthread < nthread) {
+    // 等待其他线程到达屏障
+    pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
+  } else {
+    // 所有线程已到达屏障
+    // 增加轮次计数器
+    bstate.round++;
+    
+    // 重置线程计数器，准备下一轮
+    bstate.nthread = 0;
+    
+    // 唤醒所有等待的线程
+    pthread_cond_broadcast(&bstate.barrier_cond);
+  }
+  
+  // 释放互斥锁
+  pthread_mutex_unlock(&bstate.barrier_mutex);
 }
 
 static void *
@@ -75,4 +95,5 @@ main(int argc, char *argv[])
     assert(pthread_join(tha[i], &value) == 0);
   }
   printf("OK; passed\n");
+  return 0;
 }
