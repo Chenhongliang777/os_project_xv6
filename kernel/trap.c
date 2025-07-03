@@ -49,38 +49,50 @@ usertrap(void)
   
   // save user program counter.
   p->trapframe->epc = r_sepc();
-  
-  if(r_scause() == 8){
-    // system call
+
+  uint64 scause_val = r_scause();
+    if(scause_val == 15) {
+        uint64 va = r_stval();
+        
+        // 检查地址是否有效
+        if(va >= p->sz) 
+            p->killed = 1;
+        else {
+        // 处理 COW 页面错误
+            if(!p->killed && cowalloc(p->pagetable, va) == 0) {
+                // 成功处理：刷新 TLB 并返回用户空间
+                sfence_vma();
+                usertrapret();
+                return;
+            } 
+            else 
+                p->killed = 1;
+        }
+    } 
+    else if(scause_val == 8) {  // 系统调用
+        if(p->killed)
+            exit(-1);
+        p->trapframe->epc += 4;
+        intr_on();
+        syscall();
+    } 
+    else if((which_dev = devintr()) != 0) {  // 设备中断
+        // 处理设备中断
+    } 
+    else {  // 未知异常
+        printf("usertrap(): unexpected scause %p pid=%d\n", scause_val, p->pid);
+        printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+        p->killed = 1;
+    }
 
     if(p->killed)
-      exit(-1);
+        exit(-1);
 
-    // sepc points to the ecall instruction,
-    // but we want to return to the next instruction.
-    p->trapframe->epc += 4;
+    if(which_dev == 2)
+        yield();
 
-    // an interrupt will change sstatus &c registers,
-    // so don't enable until done with those registers.
-    intr_on();
-
-    syscall();
-  } else if((which_dev = devintr()) != 0){
-    // ok
-  } else {
-    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    p->killed = 1;
-  }
-
-  if(p->killed)
-    exit(-1);
-
-  // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
-
-  usertrapret();
+    usertrapret();
+  
 }
 
 //
