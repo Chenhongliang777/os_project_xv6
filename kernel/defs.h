@@ -20,6 +20,7 @@ void            brelse(struct buf*);
 void            bwrite(struct buf*);
 void            bpin(struct buf*);
 void            bunpin(struct buf*);
+void            write_cache(struct buf *take_buf, uint dev, uint blockno);
 
 // console.c
 void            consoleinit(void);
