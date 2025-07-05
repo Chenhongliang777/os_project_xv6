@@ -1,17 +1,11 @@
-struct file {
-  enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
-  int ref; // reference count
-  char readable;
-  char writable;
-  struct pipe *pipe; // FD_PIPE
-  struct inode *ip;  // FD_INODE and FD_DEVICE
-  uint off;          // FD_INODE
-  short major;       // FD_DEVICE
-};
+#ifndef FILE_H
+#define FILE_H
 
 #define major(dev)  ((dev) >> 16 & 0xFFFF)
 #define minor(dev)  ((dev) & 0xFFFF)
 #define	mkdev(m,n)  ((uint)((m)<<16| (n)))
+#include "fs.h"
+#include "sleeplock.h"
 
 // in-memory copy of an inode
 struct inode {
@@ -38,3 +32,16 @@ struct devsw {
 extern struct devsw devsw[];
 
 #define CONSOLE 1
+
+struct file {
+  enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
+  int ref; // reference count
+  char readable;
+  char writable;
+  struct pipe *pipe; // FD_PIPE
+  struct inode *ip;  // FD_INODE and FD_DEVICE
+  uint off;          // FD_INODE
+  short major;       // FD_DEVICE
+};
+
+#endif
